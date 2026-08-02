@@ -89,10 +89,24 @@ data class ConsultationDto(
     val patientId: String? = null,
     val patientName: String? = null,
     val consultationType: String? = null,
+    val type: String? = null,
     val status: String? = null,
+    val isScheduled: Boolean? = null,
     val scheduledAt: String? = null,
     val createdAt: String? = null,
+    val startedAt: String? = null,
+    val completedAt: String? = null,
+    val lastActivityAt: String? = null,
     val protocol: ConsultationProtocolDto? = null,
 ) {
     val resolvedId: String get() = id ?: sessionId.orEmpty()
+
+    val resolvedType: String? get() = consultationType ?: type
+
+    /** Как web: слот-запись, если API явно пометил или есть scheduledAt у незавершённой. */
+    fun isSlotBooking(): Boolean {
+        if (isScheduled == true) return true
+        if (isScheduled == false) return false
+        return !scheduledAt.isNullOrBlank()
+    }
 }

@@ -59,6 +59,8 @@ fun ProfileScreen(
                 }
             }
             Spacer(modifier = Modifier.height(20.dp))
+            VitalsNavRow(title = "Сводка и диагнозы", onClick = { navController.navigate(NavRoutes.MEDICAL_OVERVIEW) })
+            Spacer(modifier = Modifier.height(12.dp))
             VitalsNavRow(title = "Документы", onClick = { navController.navigate(NavRoutes.DOCUMENTS) })
             Spacer(modifier = Modifier.height(12.dp))
             VitalsNavRow(title = "Записаться к врачу", onClick = { navController.navigate(NavRoutes.DOCTORS) })

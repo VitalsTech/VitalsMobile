@@ -18,6 +18,19 @@ fun VitalsSuggestionChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    VitalsSelectableChip(text = text, selected = false, onClick = onClick, modifier = modifier)
+}
+
+/**
+ * Selectable chip that keeps the same size when selected (unlike StatusChip + SuggestionChip mix).
+ */
+@Composable
+fun VitalsSelectableChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = VitalsTheme.colors
     Text(
         text = text,
@@ -25,8 +38,8 @@ fun VitalsSuggestionChip(
         color = colors.textPrimary,
         modifier = modifier
             .clip(VitalsTheme.shapes.chip)
-            .background(colors.surface)
-            .border(1.dp, colors.border, VitalsTheme.shapes.chip)
+            .background(if (selected) colors.accent.copy(alpha = 0.2f) else colors.surface)
+            .border(1.dp, if (selected) colors.accent else colors.border, VitalsTheme.shapes.chip)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 9.dp),
     )

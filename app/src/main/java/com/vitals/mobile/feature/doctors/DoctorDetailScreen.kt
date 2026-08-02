@@ -37,17 +37,18 @@ fun DoctorDetailScreen(
     val doctor = state.doctor
 
     Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
-        VitalsBackTopBar(title = doctor?.fullName ?: "Врач", onBack = { navController.popBackStack() })
+        VitalsBackTopBar(title = doctor?.displayName ?: "Врач", onBack = { navController.popBackStack() })
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                text = "${doctor?.specialization ?: "Специалист"} · Vitals Clinic",
+                text = doctor?.displaySpecialty ?: "Специалист",
                 style = VitalsTheme.typography.bodySmall,
                 color = colors.textMuted,
             )
             Spacer(modifier = Modifier.height(12.dp))
             VitalsCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = doctor?.biography ?: "Информация о специалисте временно недоступна",
+                    text = doctor?.biography ?: doctor?.bio ?: doctor?.description
+                        ?: "Информация о специалисте временно недоступна",
                     style = VitalsTheme.typography.bodySmall,
                     color = colors.textMuted,
                     modifier = Modifier.padding(15.dp),

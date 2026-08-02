@@ -38,6 +38,9 @@ object NavRoutes {
 
     const val TREATMENT = "treatment"
     const val LABS = "labs"
+    const val PRESCRIPTION_DETAIL = "prescriptions/{prescriptionId}"
+    fun prescriptionDetail(prescriptionId: String) = "prescriptions/$prescriptionId"
+    const val MEDICAL_OVERVIEW = "medical_overview"
     const val NOTIFICATIONS = "notifications"
     const val SUPPORT = "support"
     const val HOUSE_CALL = "house_call"

@@ -31,6 +31,8 @@ data class Session(
     val patientId: String?,
     val role: ProfileRole?,
     val deviceFingerprint: String,
+    /** Active AI triage session id (mirrors web localStorage). */
+    val triageSessionId: String? = null,
 ) {
     val isLoggedIn: Boolean get() = !accessToken.isNullOrBlank()
 }
@@ -50,6 +52,7 @@ class SessionManager @Inject constructor(
         val PATIENT_ID = stringPreferencesKey("patient_id")
         val ROLE = stringPreferencesKey("role")
         val DEVICE_FINGERPRINT = stringPreferencesKey("device_fingerprint")
+        val TRIAGE_SESSION_ID = stringPreferencesKey("triage_session_id")
     }
 
     val sessionFlow: Flow<Session> = context.sessionDataStore.data.map { prefs ->
@@ -60,6 +63,7 @@ class SessionManager @Inject constructor(
             patientId = prefs[Keys.PATIENT_ID],
             role = prefs[Keys.ROLE]?.let { ProfileRole.fromWire(it) },
             deviceFingerprint = prefs[Keys.DEVICE_FINGERPRINT] ?: DeviceFingerprint.generate(),
+            triageSessionId = prefs[Keys.TRIAGE_SESSION_ID],
         )
     }
 
@@ -92,6 +96,13 @@ class SessionManager @Inject constructor(
         }
     }
 
+    suspend fun saveTriageSessionId(sessionId: String?) {
+        context.sessionDataStore.edit { prefs ->
+            if (sessionId.isNullOrBlank()) prefs.remove(Keys.TRIAGE_SESSION_ID)
+            else prefs[Keys.TRIAGE_SESSION_ID] = sessionId
+        }
+    }
+
     suspend fun clear() {
         context.sessionDataStore.edit { prefs ->
             prefs.remove(Keys.ACCESS_TOKEN)
@@ -99,6 +110,7 @@ class SessionManager @Inject constructor(
             prefs.remove(Keys.PUBLIC_ID)
             prefs.remove(Keys.PATIENT_ID)
             prefs.remove(Keys.ROLE)
+            prefs.remove(Keys.TRIAGE_SESSION_ID)
             // Keep the device fingerprint stable across logins/logouts.
         }
     }

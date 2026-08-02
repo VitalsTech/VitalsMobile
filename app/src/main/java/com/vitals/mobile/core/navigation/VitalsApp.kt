@@ -2,8 +2,12 @@ package com.vitals.mobile.core.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -11,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -50,12 +55,16 @@ private fun MainScaffold() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.hierarchy?.firstOrNull { it.route in NavRoutes.bottomNavRoutes }?.route
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    // Hide bottom nav while typing so imePadding matches the real keyboard top (no double gap).
+    val showBottomBar = currentRoute != null && !imeVisible
 
     Scaffold(
+        contentWindowInsets = WindowInsets.systemBars,
         bottomBar = {
-            if (currentRoute != null) {
+            if (showBottomBar) {
                 VitalsBottomNavBar(
-                    selectedRoute = currentRoute,
+                    selectedRoute = currentRoute!!,
                     onSelect = { route ->
                         if (route == currentRoute) return@VitalsBottomNavBar
                         // Start tab ("Путь"): popBackStack is more reliable than navigate+restoreState.
@@ -85,7 +94,9 @@ private fun MainScaffold() {
         NavHost(
             navController = navController,
             startDestination = NavRoutes.PATH,
-            modifier = Modifier.padding(paddingValues),
+            modifier = Modifier
+                .padding(paddingValues)
+                .imePadding(),
         ) {
             vitalsNavGraph(navController)
         }

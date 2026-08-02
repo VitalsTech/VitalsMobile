@@ -6,6 +6,8 @@ import com.vitals.mobile.core.data.triage.TriageRepository
 import com.vitals.mobile.core.data.triage.TriageSessionDto
 import com.vitals.mobile.core.session.SessionManager
 import com.vitals.mobile.feature.common.UiChatMessage
+import com.vitals.mobile.feature.common.optimisticUiChatMessage
+import com.vitals.mobile.feature.common.toUiChatMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,7 +45,10 @@ class TriageViewModel @Inject constructor(
                 return@launch
             }
             runCatching { triageRepository.createSession(patientId) }
-                .onSuccess { session -> applySession(session) }
+                .onSuccess { session ->
+                    sessionManager.saveTriageSessionId(session.resolvedId)
+                    applySession(session)
+                }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -54,9 +59,7 @@ class TriageViewModel @Inject constructor(
     }
 
     private fun applySession(session: TriageSessionDto) {
-        val remoteMessages = session.messages.orEmpty().map {
-            UiChatMessage(id = it.resolvedId, text = it.resolvedText, fromMe = it.isFromCurrentUser)
-        }
+        val remoteMessages = session.messages.orEmpty().map { it.toUiChatMessage() }
         _uiState.value = _uiState.value.copy(
             isLoading = false,
             sessionId = session.resolvedId,
@@ -80,7 +83,7 @@ class TriageViewModel @Inject constructor(
 
     private fun send(text: String) {
         val sessionId = _uiState.value.sessionId ?: return
-        val optimistic = UiChatMessage(id = "local-${System.nanoTime()}", text = text, fromMe = true)
+        val optimistic = optimisticUiChatMessage(text)
         _uiState.value = _uiState.value.copy(
             messages = _uiState.value.messages + optimistic,
             isSending = true,
@@ -96,7 +99,13 @@ class TriageViewModel @Inject constructor(
         val sessionId = _uiState.value.sessionId ?: return
         viewModelScope.launch {
             runCatching { triageRepository.completeSession(sessionId) }
-            _uiState.value = _uiState.value.copy(completedSessionId = sessionId)
+                .onSuccess { completed ->
+                    sessionManager.saveTriageSessionId(completed.resolvedId)
+                    _uiState.value = _uiState.value.copy(completedSessionId = completed.resolvedId)
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(completedSessionId = sessionId)
+                }
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.vitals.mobile.feature.consultations
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.vitals.mobile.core.data.common.ConsultationLabels
 import com.vitals.mobile.core.designsystem.VitalsTheme
 import com.vitals.mobile.core.designsystem.components.StatusTone
 import com.vitals.mobile.core.designsystem.components.VitalsBackTopBar
 import com.vitals.mobile.core.designsystem.components.VitalsCard
 import com.vitals.mobile.core.designsystem.components.VitalsStatusChip
+import com.vitals.mobile.core.navigation.NavRoutes
 import com.vitals.mobile.feature.common.ChatBody
 
 @Composable
@@ -35,20 +38,39 @@ fun ConsultationDetailScreen(
     val colors = VitalsTheme.colors
     val consultation = state.consultation
     val protocol = consultation?.protocol
+    val terminal = ConsultationLabels.isTerminal(consultation?.status)
 
     LaunchedEffect(sessionId) { viewModel.load(sessionId) }
 
     Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
-        VitalsBackTopBar(title = consultation?.doctorName ?: "Консультация", onBack = { navController.popBackStack() })
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+        VitalsBackTopBar(
+            title = consultation?.doctorName ?: "Консультация",
+            onBack = { navController.popBackStack() },
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+        ) {
             Text(
-                text = "${typeLabel(consultation?.consultationType)} · ${consultation?.status ?: ""}",
+                text = "${ConsultationLabels.type(consultation?.resolvedType)} · ${ConsultationLabels.status(consultation?.status)}",
                 style = VitalsTheme.typography.bodySmall,
                 color = colors.textMuted,
             )
             Spacer(modifier = Modifier.height(10.dp))
             Row {
-                VitalsStatusChip(text = "Запись на приём", tone = StatusTone.NEUTRAL)
+                VitalsStatusChip(
+                    text = "Запись на приём",
+                    tone = StatusTone.NEUTRAL,
+                    modifier = Modifier.clickable {
+                        val doctorId = consultation?.doctorId
+                        if (!doctorId.isNullOrBlank()) {
+                            navController.navigate(NavRoutes.doctorBook(doctorId))
+                        } else {
+                            navController.navigate(NavRoutes.DOCTORS)
+                        }
+                    },
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 if (protocol != null) {
                     VitalsStatusChip(text = "Протокол доступен", tone = StatusTone.ACCENT)
@@ -59,32 +81,45 @@ fun ConsultationDetailScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 VitalsCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(15.dp)) {
-                        Text(text = "Протокол консультации", style = VitalsTheme.typography.titleSmall, color = colors.textPrimary)
+                        Text(
+                            text = "Протокол консультации",
+                            style = VitalsTheme.typography.titleSmall,
+                            color = colors.textPrimary,
+                        )
                         Spacer(modifier = Modifier.height(10.dp))
                         ProtocolField(label = "Жалобы", value = protocol.complaints)
-                        ProtocolField(label = "Диагноз", value = listOfNotNull(protocol.preliminaryDiagnosisIcd10, protocol.preliminaryDiagnosisText).joinToString(" — "))
+                        ProtocolField(
+                            label = "Диагноз",
+                            value = listOfNotNull(
+                                protocol.preliminaryDiagnosisIcd10,
+                                protocol.preliminaryDiagnosisText,
+                            ).joinToString(" — "),
+                        )
                         ProtocolField(label = "Рекомендации", value = protocol.recommendations)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            if (state.isCompleted) {
+            if (terminal) {
                 Text(
                     text = "Консультация завершена — отправка сообщений недоступна",
                     style = VitalsTheme.typography.bodySmall,
                     color = colors.textMuted,
-                )
-            } else {
-                ChatBody(
-                    messages = state.messages,
-                    inputText = state.inputText,
-                    onInputChange = viewModel::updateInput,
-                    onSend = { viewModel.sendCurrentInput(sessionId) },
-                    sendEnabled = !state.isSending,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
+            ChatBody(
+                messages = state.messages,
+                inputText = if (terminal) "" else state.inputText,
+                onInputChange = if (terminal) ({}) else viewModel::updateInput,
+                onSend = { if (!terminal) viewModel.sendCurrentInput(sessionId) },
+                sendEnabled = !terminal && !state.isSending,
+                emptyPlaceholder = if (terminal) null else "Напишите сообщение врачу",
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
         }
     }
 }

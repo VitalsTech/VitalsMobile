@@ -77,10 +77,10 @@ private fun DoctorCard(doctor: DoctorDto, onClick: () -> Unit) {
     val colors = VitalsTheme.colors
     VitalsCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(15.dp)) {
-            Text(text = doctor.fullName, style = VitalsTheme.typography.titleMedium, color = colors.textPrimary)
+            Text(text = doctor.displayName, style = VitalsTheme.typography.titleMedium, color = colors.textPrimary)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = doctor.specialization ?: "Врач",
+                text = doctor.displaySpecialty,
                 style = VitalsTheme.typography.bodySmall,
                 color = colors.textMuted,
             )

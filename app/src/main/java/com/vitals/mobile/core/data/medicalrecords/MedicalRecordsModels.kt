@@ -1,6 +1,7 @@
 package com.vitals.mobile.core.data.medicalrecords
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /** Event types written by the patient app, mirroring VitalsWeb's medical-record events. */
 object MedicalRecordEventTypes {
@@ -31,12 +32,16 @@ data class AccessGrantRequest(
 @Serializable
 data class MedicalRecordEventDto(
     val id: String? = null,
+    val eventId: String? = null,
     val eventType: String? = null,
     val sourceService: String? = null,
     val payloadJson: String? = null,
+    /** Some gateways return structured payload instead of payloadJson. */
+    val payload: JsonElement? = null,
     val occurredAt: String? = null,
     val createdAt: String? = null,
 ) {
+    val resolvedId: String get() = id ?: eventId.orEmpty()
     val effectiveDate: String get() = occurredAt ?: createdAt.orEmpty()
 }
 
@@ -78,4 +83,43 @@ data class HouseCallRequestPayload(
     val desiredTime: String? = null,
     val phone: String? = null,
     val urgent: Boolean = false,
+)
+
+data class DiagnosisDto(
+    val icd10Code: String? = null,
+    val code: String? = null,
+    val description: String? = null,
+    val title: String? = null,
+    val recordedAt: String? = null,
+    val occurredAt: String? = null,
+    val sourceEventId: String? = null,
+) {
+    val resolvedCode: String get() = icd10Code?.trim().orEmpty().ifBlank { code?.trim().orEmpty() }
+    val resolvedTitle: String
+        get() = description?.trim()?.takeIf { it.isNotEmpty() }
+            ?: title?.trim()?.takeIf { it.isNotEmpty() }
+            ?: resolvedCode.ifBlank { "Диагноз" }
+
+    fun displayLabel(): String {
+        val c = resolvedCode
+        val t = resolvedTitle
+        return when {
+            c.isNotBlank() && t.isNotBlank() && !t.equals(c, true) -> "$c — $t"
+            t.isNotBlank() -> t
+            c.isNotBlank() -> c
+            else -> "Диагноз"
+        }
+    }
+}
+
+data class PatientStateDto(
+    val patientId: String? = null,
+    val summary: String? = null,
+    val allergies: String? = null,
+    val bloodType: String? = null,
+    val activeConditions: List<String> = emptyList(),
+    val activeDiagnoses: List<DiagnosisDto> = emptyList(),
+    val activeMedications: List<String> = emptyList(),
+    val recentLabResults: List<String> = emptyList(),
+    val lastVisitAt: String? = null,
 )

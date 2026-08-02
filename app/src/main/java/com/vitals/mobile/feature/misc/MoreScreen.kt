@@ -18,6 +18,7 @@ import com.vitals.mobile.core.navigation.NavRoutes
 private data class MoreMenuItem(val title: String, val route: String)
 
 private val MORE_MENU_ITEMS = listOf(
+    MoreMenuItem("Сводка и диагнозы", NavRoutes.MEDICAL_OVERVIEW),
     MoreMenuItem("Документы", NavRoutes.DOCUMENTS),
     MoreMenuItem("Консультации", NavRoutes.CONSULTATIONS),
     MoreMenuItem("Уведомления", NavRoutes.NOTIFICATIONS),

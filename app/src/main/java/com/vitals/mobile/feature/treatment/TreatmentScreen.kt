@@ -30,6 +30,10 @@ fun TreatmentScreen(
     Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
         VitalsBackTopBar(title = "Лечение", onBack = { navController.popBackStack() })
         Column(modifier = Modifier.padding(20.dp)) {
+            state.errorMessage?.let {
+                Text(text = it, style = VitalsTheme.typography.bodySmall, color = colors.danger)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             VitalsCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(15.dp)) {
                     Text(text = "Выполнено", style = VitalsTheme.typography.titleSmall, color = colors.textPrimary)

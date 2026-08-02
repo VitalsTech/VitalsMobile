@@ -20,7 +20,9 @@ import com.vitals.mobile.feature.misc.HouseCallScreen
 import com.vitals.mobile.feature.misc.MoreScreen
 import com.vitals.mobile.feature.misc.NotificationsScreen
 import com.vitals.mobile.feature.misc.SupportScreen
+import com.vitals.mobile.feature.overview.MedicalOverviewScreen
 import com.vitals.mobile.feature.path.PathScreen
+import com.vitals.mobile.feature.prescriptions.PrescriptionDetailScreen
 import com.vitals.mobile.feature.profile.ProfileEditScreen
 import com.vitals.mobile.feature.profile.ProfileScreen
 import com.vitals.mobile.feature.treatment.TreatmentScreen
@@ -123,6 +125,18 @@ fun NavGraphBuilder.vitalsNavGraph(navController: NavHostController) {
 
     composable(NavRoutes.LABS) {
         LabsScreen(navController = navController)
+    }
+
+    composable(
+        route = NavRoutes.PRESCRIPTION_DETAIL,
+        arguments = listOf(navArgument("prescriptionId") { type = NavType.StringType }),
+    ) { backStackEntry ->
+        val prescriptionId = backStackEntry.arguments?.getString("prescriptionId").orEmpty()
+        PrescriptionDetailScreen(prescriptionId = prescriptionId, navController = navController)
+    }
+
+    composable(NavRoutes.MEDICAL_OVERVIEW) {
+        MedicalOverviewScreen(navController = navController)
     }
 
     composable(NavRoutes.NOTIFICATIONS) {

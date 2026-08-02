@@ -1,19 +1,32 @@
 package com.vitals.mobile.feature.aiassistant
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.vitals.mobile.core.designsystem.VitalsTheme
 import com.vitals.mobile.core.designsystem.components.VitalsMainTopBar
+import com.vitals.mobile.core.designsystem.components.VitalsPrimaryButton
+import com.vitals.mobile.core.designsystem.components.VitalsSecondaryButton
+import com.vitals.mobile.core.navigation.NavRoutes
 import com.vitals.mobile.feature.common.ChatBody
 
 @Composable
@@ -23,24 +36,96 @@ fun AiAssistantScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val colors = VitalsTheme.colors
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
+    LaunchedEffect(state.completedSessionId) {
+        val id = state.completedSessionId ?: return@LaunchedEffect
+        viewModel.consumeCompletedNavigation()
+        navController.navigate(NavRoutes.triageResult(id))
+    }
 
     Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
         VitalsMainTopBar()
-        ChatBody(
-            messages = state.messages,
-            inputText = state.inputText,
-            onInputChange = viewModel::updateInput,
-            onSend = viewModel::sendCurrentInput,
-            quickReplies = listOf("Стало хуже", "Консультация", "Контроль АД"),
-            onQuickReply = { text ->
-                viewModel.updateInput(text)
-                viewModel.sendCurrentInput()
-            },
-            sendEnabled = !state.isSending,
+
+        if (state.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = colors.primary)
+            }
+            return
+        }
+
+        if (state.errorMessage != null && state.sessionId == null) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = state.errorMessage.orEmpty(),
+                    style = VitalsTheme.typography.bodyMedium,
+                    color = colors.danger,
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                VitalsPrimaryButton(
+                    text = "Повторить",
+                    onClick = viewModel::retry,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            return
+        }
+
+        Column(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(20.dp),
-        )
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+        ) {
+            state.errorMessage?.let {
+                Text(text = it, style = VitalsTheme.typography.bodySmall, color = colors.danger)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            state.completeSuggestion?.takeIf { state.readyToComplete && !imeVisible }?.let { suggestion ->
+                Text(
+                    text = suggestion,
+                    style = VitalsTheme.typography.bodySmall,
+                    color = colors.textMuted,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            ChatBody(
+                messages = state.messages,
+                inputText = state.inputText,
+                onInputChange = viewModel::updateInput,
+                onSend = viewModel::sendCurrentInput,
+                quickReplies = if (imeVisible) emptyList() else listOf("Стало хуже", "Консультация", "Контроль АД"),
+                onQuickReply = { text ->
+                    viewModel.updateInput(text)
+                    viewModel.sendCurrentInput()
+                },
+                sendEnabled = !state.isSending && !state.isCompleting,
+                isThinking = state.isSending || state.isCompleting,
+                thinkingLabel = if (state.isCompleting) "Завершаем триаж…" else "ИИ печатает…",
+                emptyPlaceholder = "Опишите жалобу — ИИ задаст уточняющие вопросы",
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+            // Keep composer above keyboard: hide secondary CTA while typing.
+            if (!imeVisible) {
+                Spacer(modifier = Modifier.height(12.dp))
+                if (state.readyToComplete) {
+                    VitalsPrimaryButton(
+                        text = if (state.isCompleting) "Завершаем…" else "Завершить триаж",
+                        onClick = viewModel::completeTriage,
+                        enabled = !state.isCompleting && !state.isSending,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    VitalsSecondaryButton(
+                        text = if (state.isCompleting) "Завершаем…" else "Завершить триаж",
+                        onClick = viewModel::completeTriage,
+                        enabled = !state.isCompleting && !state.isSending && state.messages.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
     }
 }

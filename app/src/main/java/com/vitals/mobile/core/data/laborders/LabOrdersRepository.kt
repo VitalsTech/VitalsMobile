@@ -17,4 +17,18 @@ class LabOrdersRepository @Inject constructor(
             runCatching { json.decodeFromJsonElement<LabOrderDto>(element) }.getOrNull()
         }
     }
+
+    /** profileId + publicId — как web `listForPatientAliases`. */
+    suspend fun getForPatientAliases(patientIds: Collection<String>): List<LabOrderDto> {
+        val unique = patientIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        val byId = linkedMapOf<String, LabOrderDto>()
+        for (id in unique) {
+            val chunk = runCatching { getForPatient(id) }.getOrElse { emptyList() }
+            for (order in chunk) {
+                val key = order.resolvedId.ifBlank { "anon-${byId.size}" }
+                byId.putIfAbsent(key, order)
+            }
+        }
+        return byId.values.toList()
+    }
 }
