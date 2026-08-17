@@ -27,6 +27,7 @@ import com.vitals.mobile.core.designsystem.components.VitalsCard
 import com.vitals.mobile.core.designsystem.components.VitalsStatusChip
 import com.vitals.mobile.core.navigation.NavRoutes
 import com.vitals.mobile.feature.common.ChatBody
+import com.vitals.mobile.feature.consultations.video.VideoCallPanel
 
 @Composable
 fun ConsultationDetailScreen(
@@ -35,6 +36,9 @@ fun ConsultationDetailScreen(
     viewModel: ConsultationDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val video by viewModel.video.uiState.collectAsState()
+    val hubReady by viewModel.video.hub.ready.collectAsState()
+    val hubError by viewModel.video.hub.error.collectAsState()
     val colors = VitalsTheme.colors
     val consultation = state.consultation
     val protocol = consultation?.protocol
@@ -101,6 +105,36 @@ fun ConsultationDetailScreen(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+            if (!terminal) {
+                VideoCallPanel(
+                    state = video,
+                    hubReady = hubReady,
+                    hubError = hubError,
+                    eglContext = viewModel.video.eglContext,
+                    onStart = { recording -> viewModel.video.start(asInitiator = true, videoRecordingConsent = recording) },
+                    onJoin = { recording -> viewModel.video.start(asInitiator = false, videoRecordingConsent = recording) },
+                    onStop = viewModel.video::stop,
+                    onToggleAudio = viewModel.video::toggleAudio,
+                    onToggleVideo = viewModel.video::toggleVideo,
+                    bindLocal = viewModel.video::bindLocal,
+                    unbindLocal = viewModel.video::unbindLocal,
+                    bindRemote = viewModel.video::bindRemote,
+                    unbindRemote = viewModel.video::unbindRemote,
+                    modifier = Modifier.fillMaxWidth(),
+                    chat = {
+                        ChatBody(
+                            messages = state.messages,
+                            inputText = if (terminal) "" else state.inputText,
+                            onInputChange = if (terminal) ({}) else viewModel::updateInput,
+                            onSend = { if (!terminal) viewModel.sendCurrentInput(sessionId) },
+                            sendEnabled = !terminal && !state.isSending,
+                            emptyPlaceholder = if (terminal) null else "Напишите сообщение врачу",
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    },
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             if (terminal) {
                 Text(
                     text = "Консультация завершена - отправка сообщений недоступна",

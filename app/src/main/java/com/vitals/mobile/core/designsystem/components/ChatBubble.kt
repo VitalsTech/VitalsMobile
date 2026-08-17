@@ -28,8 +28,29 @@ fun ChatBubble(
     modifier: Modifier = Modifier,
     timeLabel: String? = null,
     statusLabel: String? = null,
+    isSystem: Boolean = false,
 ) {
     val colors = VitalsTheme.colors
+    if (isSystem) {
+        Column(
+            modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = text,
+                style = VitalsTheme.typography.labelMedium,
+                color = colors.textMuted,
+            )
+            if (!timeLabel.isNullOrBlank()) {
+                Text(
+                    text = timeLabel,
+                    style = VitalsTheme.typography.labelMedium,
+                    color = colors.textMuted,
+                )
+            }
+        }
+        return
+    }
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (fromMe) Alignment.End else Alignment.Start,

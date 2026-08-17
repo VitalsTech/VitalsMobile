@@ -41,9 +41,13 @@ data class ChatMessageDto(
 
     val isFromCurrentUser: Boolean
         get() {
+            if (isSystem) return false
             val roleValue = (role ?: sender ?: senderRole)?.lowercase().orEmpty()
             return roleValue.contains("patient") || roleValue.contains("user") || roleValue == "me"
         }
+
+    val isSystem: Boolean
+        get() = messageType.equals("system", ignoreCase = true)
 }
 
 /** RU chat time + delivery status, mirrors VitalsWeb `formatChatTime` / ChatBubble. */

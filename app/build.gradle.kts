@@ -99,4 +99,8 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.microsoft.signalr)
+    implementation(libs.rxjava)
+    implementation(libs.stream.webrtc.android)
 }
