@@ -34,6 +34,8 @@ import com.vitals.mobile.core.designsystem.components.VitalsCard
 import com.vitals.mobile.core.designsystem.components.VitalsMainTopBar
 import com.vitals.mobile.core.designsystem.components.VitalsPrimaryButton
 import com.vitals.mobile.core.designsystem.components.VitalsSecondaryButton
+import com.vitals.mobile.core.designsystem.components.VitalsSelectableChip
+import com.vitals.mobile.core.data.medicalrecords.MoodCode
 import com.vitals.mobile.core.navigation.NavRoutes
 
 @Composable
@@ -96,7 +98,7 @@ fun PathScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             if (state.steps.isEmpty()) {
                                 Text(
-                                    text = "Пройдите ИИ-триаж — мы соберём персональный маршрут",
+                                    text = "Пройдите ИИ-триаж - мы соберём персональный маршрут",
                                     style = VitalsTheme.typography.bodySmall,
                                     color = colors.textMuted,
                                 )
@@ -113,6 +115,19 @@ fun PathScreen(
                     VitalsPrimaryButton(
                         text = state.continueLabel,
                         onClick = { navController.navigate(viewModel.continueRoute()) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    VitalsSecondaryButton(
+                        text = "Начать новый ИИ-триаж",
+                        onClick = {
+                            viewModel.startNewTriage {
+                                navController.navigate(NavRoutes.TRIAGE_CHAT) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(10.dp))
@@ -135,17 +150,45 @@ fun PathScreen(
                             modifier = Modifier.weight(1f),
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Как себя чувствуете?",
+                        style = VitalsTheme.typography.titleSmall,
+                        color = colors.textPrimary,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Краткая отметка обновит маршрут и уведомит врача",
+                        style = VitalsTheme.typography.bodySmall,
+                        color = colors.textMuted,
+                    )
                     Spacer(modifier = Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        VitalsSecondaryButton(
-                            text = "Анализы",
-                            onClick = { navController.navigate(NavRoutes.LABS) },
-                            modifier = Modifier.weight(1f),
+                    MoodCode.entries.forEach { mood ->
+                        VitalsSelectableChip(
+                            text = mood.label,
+                            selected = state.selectedMood == mood,
+                            onClick = {
+                                if (!state.isSavingMood) viewModel.reportMood(mood)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
                         )
+                    }
+                    if (state.selectedMood == MoodCode.WORSE) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Если стало хуже - пройдите короткий ИИ-триаж, чтобы обновить маршрут.",
+                            style = VitalsTheme.typography.bodySmall,
+                            color = colors.textMuted,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                         VitalsSecondaryButton(
-                            text = "Стало хуже",
-                            onClick = { viewModel.reportFeelingWorse() },
-                            modifier = Modifier.weight(1f),
+                            text = "К ИИ-триажу",
+                            onClick = { navController.navigate(NavRoutes.TRIAGE_CHAT) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !state.isSavingMood,
                         )
                     }
                 }

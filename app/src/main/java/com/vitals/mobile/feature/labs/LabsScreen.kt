@@ -67,7 +67,7 @@ fun LabsScreen(
                     } else {
                         state.labLines.forEach { line ->
                             Text(
-                                text = if (line.status.isBlank()) line.title else "${line.title} — ${line.status}",
+                                text = if (line.status.isBlank()) line.title else "${line.title} - ${line.status}",
                                 style = VitalsTheme.typography.bodySmall,
                                 color = colors.textMuted,
                                 modifier = Modifier.padding(bottom = 4.dp),
@@ -103,7 +103,7 @@ fun LabsScreen(
                                     .padding(vertical = 8.dp),
                             ) {
                                 Text(
-                                    text = if (line.status.isBlank()) line.title else "${line.title} — ${line.status}",
+                                    text = if (line.status.isBlank()) line.title else "${line.title} - ${line.status}",
                                     style = VitalsTheme.typography.bodyMedium,
                                     color = colors.textPrimary,
                                 )

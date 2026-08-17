@@ -53,7 +53,7 @@ class TriageResultViewModel @Inject constructor(
             var labs = session.recommendedLabs.orEmpty().filter { it.isNotBlank() }
 
             if (patientId != null) {
-                // Routing may land slightly after complete — brief retry like web.
+                // Routing may land slightly after complete - brief retry like web.
                 repeat(3) { attempt ->
                     val route = runCatching { routingRepository.getActiveRoute(patientId) }.getOrNull()
                     val steps = route?.steps.orEmpty()
@@ -116,6 +116,14 @@ class TriageResultViewModel @Inject constructor(
                 consultationSessionId = session.consultationSessionId,
                 recommendedLabs = labs,
             )
+        }
+    }
+
+    /** Like web: drop current triage and open a blank chat on the ИИ tab. */
+    fun startNewTriage(onReady: () -> Unit) {
+        viewModelScope.launch {
+            sessionManager.requestNewTriage()
+            onReady()
         }
     }
 }

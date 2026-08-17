@@ -52,10 +52,7 @@ fun MyConsultationsScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            SectionTitle(
-                title = "Запланированные",
-                subtitle = "Активные записи на слот расписания",
-            )
+            SectionTitle(title = "Запланированные")
             Spacer(modifier = Modifier.height(10.dp))
             ConsultationList(
                 items = state.scheduled,
@@ -64,10 +61,7 @@ fun MyConsultationsScreen(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            SectionTitle(
-                title = "Чаты",
-                subtitle = "Активные консультации без брони слота",
-            )
+            SectionTitle(title = "Чаты")
             Spacer(modifier = Modifier.height(10.dp))
             ConsultationList(
                 items = state.chats,
@@ -77,10 +71,7 @@ fun MyConsultationsScreen(
 
             if (state.completed.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionTitle(
-                    title = "Завершённые",
-                    subtitle = "Закрытые консультации и приёмы",
-                )
+                SectionTitle(title = "Завершённые")
                 Spacer(modifier = Modifier.height(10.dp))
                 ConsultationList(
                     items = state.completed,
@@ -95,10 +86,9 @@ fun MyConsultationsScreen(
 }
 
 @Composable
-private fun SectionTitle(title: String, subtitle: String) {
+private fun SectionTitle(title: String) {
     val colors = VitalsTheme.colors
     Text(text = title, style = VitalsTheme.typography.titleSmall, color = colors.textPrimary)
-    Text(text = subtitle, style = VitalsTheme.typography.bodySmall, color = colors.textMuted)
 }
 
 @Composable

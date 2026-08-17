@@ -1,7 +1,9 @@
 package com.vitals.mobile.feature.triage
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -38,12 +41,25 @@ fun TriageOnboardingScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
-        Text(
-            text = "ИИ-триаж",
-            style = VitalsTheme.typography.headlineMedium,
-            color = colors.textPrimary,
-            modifier = Modifier.padding(start = 20.dp, top = 12.dp, end = 20.dp),
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, top = 12.dp, end = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "ИИ-триаж",
+                style = VitalsTheme.typography.headlineMedium,
+                color = colors.textPrimary,
+            )
+            TextButton(
+                onClick = viewModel::startNewTriage,
+                enabled = !state.isSending,
+            ) {
+                Text(text = "Новый триаж", color = colors.primary)
+            }
+        }
         Column(modifier = Modifier.padding(20.dp).fillMaxSize()) {
             state.errorMessage?.let {
                 Text(text = it, style = VitalsTheme.typography.bodySmall, color = colors.danger)
@@ -58,7 +74,7 @@ fun TriageOnboardingScreen(
                 sendEnabled = !state.isSending,
                 isThinking = state.isSending,
                 thinkingLabel = "ИИ печатает…",
-                emptyPlaceholder = "Опишите жалобу — ИИ задаст уточняющие вопросы",
+                emptyPlaceholder = "Опишите жалобу - ИИ задаст уточняющие вопросы",
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             )
             if (!imeVisible) {

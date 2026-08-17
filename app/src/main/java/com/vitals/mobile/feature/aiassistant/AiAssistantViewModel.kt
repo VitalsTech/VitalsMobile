@@ -21,8 +21,11 @@ data class AiAssistantUiState(
     val inputText: String = "",
     val isSending: Boolean = false,
     val isCompleting: Boolean = false,
+    val isStartingNew: Boolean = false,
     val readyToComplete: Boolean = false,
+    val isSessionCompleted: Boolean = false,
     val completeSuggestion: String? = null,
+    /** Set only after the user completes triage in this session - triggers navigation to result. */
     val completedSessionId: String? = null,
     val errorMessage: String? = null,
 )
@@ -42,9 +45,31 @@ class AiAssistantViewModel @Inject constructor(
 
     fun retry() = resumeOrCreateSession()
 
+    /** Called when the ИИ tab becomes visible - honours pending «новый триаж» from Path / result. */
+    fun onScreenVisible() {
+        viewModelScope.launch {
+            if (sessionManager.consumePendingNewTriage()) {
+                createFreshSession()
+            }
+        }
+    }
+
+    /** Like web Triage `startNew`: drop current session and open a new empty triage chat. */
+    fun startNewTriage() {
+        if (_uiState.value.isStartingNew || _uiState.value.isLoading) return
+        viewModelScope.launch {
+            createFreshSession()
+        }
+    }
+
     private fun resumeOrCreateSession() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, completedSessionId = null)
+            if (sessionManager.consumePendingNewTriage()) {
+                createFreshSession()
+                return@launch
+            }
+
             val session = sessionManager.currentSession()
             val patientId = session.patientId
             if (patientId == null) {
@@ -59,43 +84,58 @@ class AiAssistantViewModel @Inject constructor(
             if (!existingId.isNullOrBlank()) {
                 val resumed = runCatching { triageRepository.getSession(existingId) }.getOrNull()
                 if (resumed != null) {
-                    if (resumed.isCompleted) {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            sessionId = resumed.resolvedId,
-                            completedSessionId = resumed.resolvedId,
-                        )
-                        return@launch
-                    }
-                    applySession(resumed)
+                    // Completed sessions stay on this screen (with «Новый триаж»), like web -
+                    // do not auto-navigate to result on resume.
+                    applySession(resumed, navigateToResult = false)
                     return@launch
                 }
             }
 
-            runCatching { triageRepository.createSession(patientId) }
-                .onSuccess { created ->
-                    sessionManager.saveTriageSessionId(created.resolvedId)
-                    applySession(created)
-                }
-                .onFailure { error ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = error.message ?: "Не удалось открыть чат триажа",
-                    )
-                }
+            createFreshSession(patientId)
         }
     }
 
-    private fun applySession(session: TriageSessionDto) {
+    private suspend fun createFreshSession(patientIdOverride: String? = null) {
+        _uiState.value = AiAssistantUiState(isLoading = true, isStartingNew = true)
+        sessionManager.saveTriageSessionId(null)
+
+        val patientId = patientIdOverride ?: sessionManager.currentSession().patientId
+        if (patientId == null) {
+            _uiState.value = AiAssistantUiState(
+                isLoading = false,
+                errorMessage = "Профиль пациента не найден",
+            )
+            return
+        }
+
+        runCatching { triageRepository.createSession(patientId) }
+            .onSuccess { created ->
+                sessionManager.saveTriageSessionId(created.resolvedId)
+                applySession(created, navigateToResult = false)
+            }
+            .onFailure { error ->
+                _uiState.value = AiAssistantUiState(
+                    isLoading = false,
+                    errorMessage = error.message ?: "Не удалось начать новый триаж",
+                )
+            }
+    }
+
+    private fun applySession(session: TriageSessionDto, navigateToResult: Boolean) {
         val remoteMessages = session.messages.orEmpty().map { it.toUiChatMessage() }
         _uiState.value = _uiState.value.copy(
             isLoading = false,
+            isStartingNew = false,
             sessionId = session.resolvedId,
             messages = remoteMessages,
             readyToComplete = session.resolvedReadyToComplete || session.isCompleted,
+            isSessionCompleted = session.isCompleted,
             completeSuggestion = session.resolvedCompleteSuggestion,
             errorMessage = null,
-            completedSessionId = if (session.isCompleted) session.resolvedId else null,
+            completedSessionId = if (navigateToResult && session.isCompleted) session.resolvedId else null,
+            inputText = "",
+            isSending = false,
+            isCompleting = false,
         )
     }
 
@@ -106,6 +146,7 @@ class AiAssistantViewModel @Inject constructor(
     fun sendCurrentInput() {
         val text = _uiState.value.inputText.trim()
         if (text.isEmpty()) return
+        if (_uiState.value.isSessionCompleted) return
         val sessionId = _uiState.value.sessionId ?: return
         val optimistic = optimisticUiChatMessage(text)
         _uiState.value = _uiState.value.copy(
@@ -122,14 +163,14 @@ class AiAssistantViewModel @Inject constructor(
                     )
                 }
             runCatching { triageRepository.getSession(sessionId) }
-                .onSuccess { applySession(it) }
+                .onSuccess { applySession(it, navigateToResult = false) }
             _uiState.value = _uiState.value.copy(isSending = false)
         }
     }
 
     fun completeTriage() {
         val sessionId = _uiState.value.sessionId ?: return
-        if (_uiState.value.isCompleting) return
+        if (_uiState.value.isCompleting || _uiState.value.isSessionCompleted) return
         _uiState.value = _uiState.value.copy(isCompleting = true, errorMessage = null)
         viewModelScope.launch {
             runCatching { triageRepository.completeSession(sessionId) }
@@ -138,6 +179,7 @@ class AiAssistantViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isCompleting = false,
                         readyToComplete = true,
+                        isSessionCompleted = true,
                         completedSessionId = completed.resolvedId,
                     )
                 }

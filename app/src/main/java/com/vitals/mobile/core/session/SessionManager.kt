@@ -2,6 +2,7 @@ package com.vitals.mobile.core.session
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -53,6 +54,8 @@ class SessionManager @Inject constructor(
         val ROLE = stringPreferencesKey("role")
         val DEVICE_FINGERPRINT = stringPreferencesKey("device_fingerprint")
         val TRIAGE_SESSION_ID = stringPreferencesKey("triage_session_id")
+        /** One-shot flag: open ИИ tab and create a fresh triage session (like web `?new=1`). */
+        val PENDING_NEW_TRIAGE = booleanPreferencesKey("pending_new_triage")
     }
 
     val sessionFlow: Flow<Session> = context.sessionDataStore.data.map { prefs ->
@@ -103,6 +106,26 @@ class SessionManager @Inject constructor(
         }
     }
 
+    /**
+     * Clears the stored triage session and marks that the ИИ screen should open a brand-new one.
+     * Consumed by [consumePendingNewTriage] when AiAssistant becomes visible.
+     */
+    suspend fun requestNewTriage() {
+        context.sessionDataStore.edit { prefs ->
+            prefs.remove(Keys.TRIAGE_SESSION_ID)
+            prefs[Keys.PENDING_NEW_TRIAGE] = true
+        }
+    }
+
+    /** Returns true once if [requestNewTriage] was called; clears the flag. */
+    suspend fun consumePendingNewTriage(): Boolean {
+        val pending = context.sessionDataStore.data.first()[Keys.PENDING_NEW_TRIAGE] == true
+        if (pending) {
+            context.sessionDataStore.edit { it.remove(Keys.PENDING_NEW_TRIAGE) }
+        }
+        return pending
+    }
+
     suspend fun clear() {
         context.sessionDataStore.edit { prefs ->
             prefs.remove(Keys.ACCESS_TOKEN)
@@ -111,6 +134,7 @@ class SessionManager @Inject constructor(
             prefs.remove(Keys.PATIENT_ID)
             prefs.remove(Keys.ROLE)
             prefs.remove(Keys.TRIAGE_SESSION_ID)
+            prefs.remove(Keys.PENDING_NEW_TRIAGE)
             // Keep the device fingerprint stable across logins/logouts.
         }
     }

@@ -1,6 +1,5 @@
 package com.vitals.mobile.core.data.auth
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 enum class PreferredProfileType(val wireValue: String) {
@@ -74,4 +73,45 @@ data class AuthResult(
     val refreshToken: String?,
     val publicId: String?,
     val profileId: String?,
+)
+
+@Serializable
+data class EsiaConfigDto(
+    val enabled: Boolean = false,
+    val mode: String? = null,
+    val configured: Boolean = true,
+    val portal: String? = null,
+    val redirectUri: String? = null,
+)
+
+fun EsiaConfigDto.isStubEnabled(): Boolean = enabled && mode == "stub"
+
+@Serializable
+data class EsiaStubRegisterRequest(
+    val lastName: String,
+    val firstName: String,
+    val middleName: String? = null,
+    val email: String,
+    val phoneNumber: String,
+)
+
+@Serializable
+data class EsiaStatusDto(
+    val linked: Boolean = false,
+    val linkedAt: String? = null,
+    val snilsMasked: String? = null,
+)
+
+data class EsiaSyncResult(
+    val linked: Boolean = true,
+    val existingAccount: Boolean = false,
+    val devPassword: String? = null,
+    val fullName: String? = null,
+)
+
+data class EsiaAuthOutcome(
+    val accessToken: String,
+    val refreshToken: String?,
+    val publicIdHint: String?,
+    val esia: EsiaSyncResult,
 )

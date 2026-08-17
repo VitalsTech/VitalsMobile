@@ -102,7 +102,7 @@ fun PrescriptionDetailScreen(
             Spacer(modifier = Modifier.height(16.dp))
             VitalsCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(15.dp)) {
-                    MetaRow("Диагноз", rx.diagnosisForPrescription ?: "—")
+                    MetaRow("Диагноз", rx.diagnosisForPrescription ?: "-")
                     MetaRow("Действует до", viewModel.formatDate(rx.validUntil))
                     MetaRow("Создан", viewModel.formatDate(rx.createdAt))
                     if (!rx.signedAt.isNullOrBlank()) {
@@ -305,7 +305,7 @@ private fun MetaRow(label: String, value: String) {
     val colors = VitalsTheme.colors
     Text(text = label, style = VitalsTheme.typography.labelMedium, color = colors.textMuted)
     Text(
-        text = value.ifBlank { "—" },
+        text = value.ifBlank { "-" },
         style = VitalsTheme.typography.bodyMedium,
         color = colors.textPrimary,
         modifier = Modifier.padding(bottom = 10.dp),

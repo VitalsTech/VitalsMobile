@@ -2,10 +2,14 @@ package com.vitals.mobile.core.data.auth
 
 import com.vitals.mobile.core.network.JwtUtils
 import com.vitals.mobile.core.network.SessionTokenParser
+import com.vitals.mobile.core.network.boolField
+import com.vitals.mobile.core.network.objectField
+import com.vitals.mobile.core.network.stringField
 import com.vitals.mobile.core.session.ProfileRole
 import com.vitals.mobile.core.session.Session
 import com.vitals.mobile.core.session.SessionManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.json.JsonObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,7 +40,6 @@ class AuthRepository @Inject constructor(
         return if (tokens?.accessToken != null) {
             persistAuthResponse(response, role)
         } else {
-            // Some backends return an empty body on register and expect a follow-up login call.
             login(payload.phoneNumber, payload.password, role)
         }
     }
@@ -61,23 +64,71 @@ class AuthRepository @Inject constructor(
         authApi.resetPassword(ResetPasswordRequest(normalizePhone(phoneNumber), code, newPassword))
     }
 
-    private suspend fun persistAuthResponse(response: kotlinx.serialization.json.JsonObject, role: ProfileRole): AuthResult {
+    suspend fun getEsiaConfig(): EsiaConfigDto =
+        runCatching { authApi.getEsiaConfig() }.getOrElse { EsiaConfigDto(enabled = false) }
+
+    suspend fun getEsiaStatus(): EsiaStatusDto = authApi.getEsiaStatus()
+
+    /** DEV stub: does not persist tokens so the UI can show existingAccount / devPassword first. */
+    suspend fun stubRegister(request: EsiaStubRegisterRequest): EsiaAuthOutcome {
+        val response = authApi.stubRegister(request)
+        return parseEsiaAuthOutcome(response)
+    }
+
+    suspend fun stubLink(): EsiaAuthOutcome {
+        val outcome = parseEsiaAuthOutcome(authApi.stubLink(JsonObject(emptyMap())))
+        persistAuthOutcome(outcome)
+        return outcome
+    }
+
+    suspend fun persistAuthOutcome(
+        outcome: EsiaAuthOutcome,
+        role: ProfileRole = ProfileRole.PATIENT,
+    ): AuthResult = persistTokens(outcome.accessToken, outcome.refreshToken, outcome.publicIdHint, role)
+
+    private fun parseEsiaAuthOutcome(response: JsonObject): EsiaAuthOutcome {
+        val tokens = SessionTokenParser.extract(response)
+        val accessToken = requireNotNull(tokens?.accessToken) { "Сервер не вернул токены доступа." }
+        val esiaObj = response.objectField("esia")
+        return EsiaAuthOutcome(
+            accessToken = accessToken,
+            refreshToken = tokens.refreshToken,
+            publicIdHint = response.stringField("userPublicId", "user_public_id", "publicId"),
+            esia = EsiaSyncResult(
+                linked = esiaObj?.boolField("linked") ?: true,
+                existingAccount = esiaObj?.boolField("existingAccount") ?: false,
+                devPassword = esiaObj?.stringField("devPassword"),
+                fullName = esiaObj?.stringField("fullName"),
+            ),
+        )
+    }
+
+    private suspend fun persistAuthResponse(
+        response: JsonObject,
+        role: ProfileRole,
+    ): AuthResult {
         val tokens = SessionTokenParser.extract(response)
         val accessToken = requireNotNull(tokens?.accessToken) { "Auth response did not contain an access token" }
-        val publicId = JwtUtils.publicId(accessToken)
+        return persistTokens(accessToken, tokens.refreshToken, null, role)
+    }
+
+    private suspend fun persistTokens(
+        accessToken: String,
+        refreshToken: String?,
+        publicIdHint: String?,
+        role: ProfileRole,
+    ): AuthResult {
+        val publicId = JwtUtils.publicId(accessToken) ?: publicIdHint
         val profileId = JwtUtils.profileId(accessToken)
-
-        sessionManager.saveTokens(accessToken, tokens?.refreshToken)
+        sessionManager.saveTokens(accessToken, refreshToken)
         sessionManager.saveIdentity(publicId = publicId, patientId = profileId, role = role)
-
         return AuthResult(
             accessToken = accessToken,
-            refreshToken = tokens?.refreshToken,
+            refreshToken = refreshToken,
             publicId = publicId,
             profileId = profileId,
         )
     }
 
-    /** Backend expects digits-only phone numbers (no leading `+`), matching VitalsWeb's normalization. */
     private fun normalizePhone(phoneNumber: String): String = phoneNumber.filter { it.isDigit() }
 }

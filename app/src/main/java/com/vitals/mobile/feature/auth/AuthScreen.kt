@@ -37,8 +37,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.vitals.mobile.core.data.auth.EsiaMessages
 import com.vitals.mobile.core.designsystem.VitalsTheme
 import com.vitals.mobile.core.designsystem.components.VitalsCard
 import com.vitals.mobile.core.designsystem.components.VitalsPrimaryButton
@@ -60,6 +64,17 @@ fun AuthScreen(
     if (state.isAuthenticated) {
         onAuthenticated()
         return
+    }
+
+    when {
+        state.esiaNotice != null -> {
+            EsiaNoticeScreen(state = state, viewModel = viewModel)
+            return
+        }
+        state.showEsiaForm -> {
+            EsiaStubFormScreen(state = state, viewModel = viewModel)
+            return
+        }
     }
 
     Box(
@@ -110,7 +125,7 @@ fun AuthScreen(
                     text = if (state.tab == AuthTab.LOGIN) {
                         "Войдите, чтобы продолжить маршрут лечения"
                     } else {
-                        "Несколько полей — и вы в портале пациента"
+                        "Несколько полей - и вы в портале пациента"
                     },
                     style = VitalsTheme.typography.bodyMedium,
                     color = colors.textMuted,
@@ -224,12 +239,15 @@ private fun LoginForm(state: AuthUiState, viewModel: AuthViewModel) {
             modifier = Modifier.fillMaxWidth(),
             loading = state.isLoading,
         )
-        Spacer(modifier = Modifier.height(10.dp))
-        VitalsSecondaryButton(
-            text = "Госуслуги (ЕСИА)",
-            onClick = { },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (state.esiaEnabled) {
+            Spacer(modifier = Modifier.height(10.dp))
+            VitalsSecondaryButton(
+                text = "Войти через Госуслуги",
+                onClick = viewModel::openEsiaForm,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isLoading,
+            )
+        }
     }
 }
 
@@ -304,6 +322,15 @@ private fun RegisterForm(state: AuthUiState, viewModel: AuthViewModel) {
             modifier = Modifier.fillMaxWidth(),
             loading = state.isLoading,
         )
+        if (state.esiaEnabled) {
+            Spacer(modifier = Modifier.height(10.dp))
+            VitalsSecondaryButton(
+                text = "Войти через Госуслуги",
+                onClick = viewModel::openEsiaForm,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isLoading,
+            )
+        }
     }
 
     if (showDatePicker) {
@@ -416,5 +443,180 @@ private fun SexChip(
             style = VitalsTheme.typography.labelLarge,
             color = colors.textPrimary,
         )
+    }
+}
+
+@Composable
+private fun EsiaStubFormScreen(state: AuthUiState, viewModel: AuthViewModel) {
+    val colors = VitalsTheme.colors
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        colors.background,
+                        colors.surfaceMuted.copy(alpha = 0.55f),
+                        colors.background,
+                    ),
+                ),
+            ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 28.dp),
+        ) {
+            Text(
+                text = "Войти через Госуслуги",
+                style = VitalsTheme.typography.displaySmall,
+                color = colors.textPrimary,
+            )
+            Spacer(modifier = Modifier.height(22.dp))
+            VitalsCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    VitalsTextField(
+                        value = state.esiaLastName,
+                        onValueChange = { viewModel.updateEsiaField(lastName = it) },
+                        label = "Фамилия",
+                        placeholder = "Иванов",
+                        isError = state.esiaLastNameError != null,
+                        supportingText = state.esiaLastNameError,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    VitalsTextField(
+                        value = state.esiaFirstName,
+                        onValueChange = { viewModel.updateEsiaField(firstName = it) },
+                        label = "Имя",
+                        placeholder = "Иван",
+                        isError = state.esiaFirstNameError != null,
+                        supportingText = state.esiaFirstNameError,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    VitalsTextField(
+                        value = state.esiaMiddleName,
+                        onValueChange = { viewModel.updateEsiaField(middleName = it) },
+                        label = "Отчество",
+                        placeholder = "Иванович",
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    VitalsTextField(
+                        value = state.esiaEmail,
+                        onValueChange = { viewModel.updateEsiaField(email = it) },
+                        label = "Почта",
+                        placeholder = "ivan@example.com",
+                        keyboardType = KeyboardType.Email,
+                        isError = state.esiaEmailError != null,
+                        supportingText = state.esiaEmailError,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    VitalsTextField(
+                        value = state.esiaPhoneDigits,
+                        onValueChange = { viewModel.updateEsiaField(phoneRaw = it) },
+                        label = "Телефон",
+                        placeholder = "+7 900 000-00-00",
+                        isPhone = true,
+                        isError = state.esiaPhoneError != null,
+                        supportingText = state.esiaPhoneError,
+                    )
+                    state.esiaError?.let { message ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = message,
+                            style = VitalsTheme.typography.bodySmall,
+                            color = colors.danger,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                    VitalsPrimaryButton(
+                        text = "Продолжить",
+                        onClick = viewModel::submitEsia,
+                        modifier = Modifier.fillMaxWidth(),
+                        loading = state.esiaSubmitting,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    VitalsSecondaryButton(
+                        text = "Назад",
+                        onClick = viewModel::closeEsiaForm,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !state.esiaSubmitting,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EsiaNoticeScreen(state: AuthUiState, viewModel: AuthViewModel) {
+    val colors = VitalsTheme.colors
+    val notice = state.esiaNotice ?: return
+    val clipboard = LocalClipboardManager.current
+    val password = notice.devPassword
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        VitalsCard(modifier = Modifier.padding(20.dp).fillMaxWidth()) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Госуслуги",
+                    style = VitalsTheme.typography.titleMedium,
+                    color = colors.textPrimary,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = if (notice.existingAccount) {
+                        EsiaMessages.EXISTING_ACCOUNT
+                    } else {
+                        "Аккаунт создан через Госуслуги."
+                    },
+                    style = VitalsTheme.typography.bodyMedium,
+                    color = colors.textPrimary,
+                )
+                if (!notice.existingAccount && !password.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text(
+                        text = "Пароль для входа по телефону",
+                        style = VitalsTheme.typography.bodySmall,
+                        color = colors.textMuted,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = password,
+                        style = VitalsTheme.typography.titleSmall,
+                        color = colors.textPrimary,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    VitalsSecondaryButton(
+                        text = if (state.esiaPasswordCopied) "Скопировано" else "Скопировать",
+                        onClick = {
+                            clipboard.setText(AnnotatedString(password))
+                            viewModel.markEsiaPasswordCopied()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                state.esiaError?.let { message ->
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = message,
+                        style = VitalsTheme.typography.bodySmall,
+                        color = colors.danger,
+                    )
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+                VitalsPrimaryButton(
+                    text = "Продолжить",
+                    onClick = viewModel::confirmEsiaNotice,
+                    modifier = Modifier.fillMaxWidth(),
+                    loading = state.esiaSubmitting,
+                )
+            }
+        }
     }
 }

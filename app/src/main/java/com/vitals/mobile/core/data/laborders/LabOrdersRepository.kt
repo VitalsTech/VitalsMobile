@@ -18,7 +18,7 @@ class LabOrdersRepository @Inject constructor(
         }
     }
 
-    /** profileId + publicId — как web `listForPatientAliases`. */
+    /** profileId + publicId - как web `listForPatientAliases`. */
     suspend fun getForPatientAliases(patientIds: Collection<String>): List<LabOrderDto> {
         val unique = patientIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
         val byId = linkedMapOf<String, LabOrderDto>()

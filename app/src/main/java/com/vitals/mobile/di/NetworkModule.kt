@@ -36,7 +36,7 @@ object NetworkModule {
     fun provideLoggingInterceptor(): HttpLoggingInterceptor =
         HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC }
 
-    /** Client with no auth headers/refresh logic — used internally for the refresh-token call itself. */
+    /** Client with no auth headers/refresh logic - used internally for the refresh-token call itself. */
     @Provides
     @Singleton
     @Named("plain")

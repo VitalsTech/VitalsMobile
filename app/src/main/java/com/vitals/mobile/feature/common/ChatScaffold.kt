@@ -78,7 +78,7 @@ fun ChatBody(
     quickReplies: List<String> = emptyList(),
     onQuickReply: (String) -> Unit = {},
     sendEnabled: Boolean = true,
-    emptyPlaceholder: String? = "Опишите жалобу — ИИ задаст уточняющие вопросы",
+    emptyPlaceholder: String? = "Опишите жалобу - ИИ задаст уточняющие вопросы",
     inputPlaceholder: String = "Сообщение...",
     isThinking: Boolean = false,
     thinkingLabel: String = "ИИ печатает…",
@@ -101,7 +101,7 @@ fun ChatBody(
         listState.animateScrollToItem(lastIndex)
     }
 
-    // IME padding is applied once on NavHost in MainScaffold — not here.
+    // IME padding is applied once on NavHost in MainScaffold - not here.
     Column(modifier = modifier) {
         LazyColumn(
             state = listState,

@@ -1,6 +1,7 @@
 package com.vitals.mobile.core.data.users
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class UserDto(
@@ -25,6 +26,7 @@ data class UserProfileDto(
     val profileId: String? = null,
     val profileType: String? = null,
     val isActive: Boolean? = null,
+    val data: JsonObject? = null,
 )
 
 @Serializable

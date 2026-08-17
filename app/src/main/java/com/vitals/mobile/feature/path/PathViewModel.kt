@@ -45,6 +45,8 @@ data class PathUiState(
     val steps: List<RouteStepUi> = emptyList(),
     val continueTarget: PathContinueTarget = PathContinueTarget.TRIAGE,
     val continueLabel: String = "Продолжить маршрут",
+    val selectedMood: MoodCode? = null,
+    val isSavingMood: Boolean = false,
     val errorMessage: String? = null,
     val infoMessage: String? = null,
 )
@@ -139,7 +141,7 @@ class PathViewModel @Inject constructor(
             val protocolHasPrescription = mine.any { c ->
                 c.protocol?.prescriptions.orEmpty().any { it.trim().isNotEmpty() }
             }
-            // Как web hasPrescription — наличие факт наличия рецепта, не только «выдан».
+            // Как web hasPrescription - наличие факт наличия рецепта, не только «выдан».
             val hasPrescription = prescriptions.isNotEmpty() || protocolHasPrescription
 
             val steps = buildFourSteps(
@@ -184,7 +186,7 @@ class PathViewModel @Inject constructor(
 
     /**
      * Статусы шагов как на web Home.pathSteps, затем один current = первый незавершённый.
-     * Если все done — текущий = последний (шаг 4), чтобы не уезжать на «шаг 1».
+     * Если все done - текущий = последний (шаг 4), чтобы не уезжать на «шаг 1».
      */
     private fun buildFourSteps(
         triageDone: Boolean,
@@ -201,7 +203,7 @@ class PathViewModel @Inject constructor(
         data class Draft(val title: String, val description: String, var status: String, val action: String)
 
         val triageDesc = when {
-            !triageDone -> "Опишите симптомы — система подберёт маршрут"
+            !triageDone -> "Опишите симптомы - система подберёт маршрут"
             !specialty.isNullOrBlank() -> "Завершён · рекомендован специалист: $specialty"
             else -> "Завершён"
         }
@@ -209,13 +211,13 @@ class PathViewModel @Inject constructor(
         val labDescription = when {
             hasOpenLabOrders || hasAnyLabOrders -> "Направления на вкладке «Анализы и рецепты»"
             protocolLabs.isNotEmpty() ->
-                "Из протокола: ${protocolLabs.take(3).joinToString(", ")}${if (protocolLabs.size > 3) "…" else ""}"
+                protocolLabs.take(3).joinToString(", ") + if (protocolLabs.size > 3) "…" else ""
             recommendedLabs.isNotEmpty() ->
                 "Рекомендовано: ${recommendedLabs.take(3).joinToString(", ")}${if (recommendedLabs.size > 3) "…" else ""}"
             else -> "Ожидают назначения после приёма"
         }
 
-        // Статусы до нормализации — логика web.
+        // Статусы до нормализации - логика web.
         val labsStatus = when {
             !consultDone -> "upcoming"
             labsPending && !hasPrescription -> "current"
@@ -263,7 +265,7 @@ class PathViewModel @Inject constructor(
             ),
         )
 
-        // Один текущий — первый не-done; если все done — последний шаг остаётся current.
+        // Один текущий - первый не-done; если все done - последний шаг остаётся current.
         var sawCurrent = false
         drafts.forEach { draft ->
             if (draft.status == "done") return@forEach
@@ -275,7 +277,7 @@ class PathViewModel @Inject constructor(
             }
         }
         if (!sawCurrent && drafts.isNotEmpty()) {
-            // Все выполнены — показываем шаг 4 из 4 (в отличие от web fallback на 1).
+            // Все выполнены - показываем шаг 4 из 4 (в отличие от web fallback на 1).
             drafts.last().status = "current"
         }
 
@@ -317,15 +319,36 @@ class PathViewModel @Inject constructor(
         PathContinueTarget.OVERVIEW -> NavRoutes.MEDICAL_OVERVIEW
     }
 
-    fun reportFeelingWorse() {
+    /** Clears stored triage session and opens a fresh one on the ИИ tab (like web Home). */
+    fun startNewTriage(onReady: () -> Unit) {
+        viewModelScope.launch {
+            sessionManager.requestNewTriage()
+            onReady()
+        }
+    }
+
+    fun reportMood(mood: MoodCode) {
+        if (_uiState.value.isSavingMood) return
         viewModelScope.launch {
             val id = sessionManager.currentSession().patientId ?: return@launch
-            runCatching { medicalRecordsRepository.recordMoodCheck(id, MoodCode.WORSE) }
+            _uiState.value = _uiState.value.copy(isSavingMood = true, selectedMood = mood)
+            runCatching { medicalRecordsRepository.recordMoodCheck(id, mood) }
                 .onSuccess {
-                    _uiState.value = _uiState.value.copy(infoMessage = "Врач уведомлён о ухудшении состояния")
+                    val message = when (mood) {
+                        MoodCode.BETTER -> "Отметили: стало лучше"
+                        MoodCode.SAME -> "Отметили: без изменений"
+                        MoodCode.WORSE -> "Врач уведомлён о ухудшении состояния"
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        isSavingMood = false,
+                        infoMessage = message,
+                    )
                 }
                 .onFailure {
-                    _uiState.value = _uiState.value.copy(infoMessage = "Не удалось отправить уведомление")
+                    _uiState.value = _uiState.value.copy(
+                        isSavingMood = false,
+                        infoMessage = "Не удалось сохранить отметку самочувствия",
+                    )
                 }
         }
     }

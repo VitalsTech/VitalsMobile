@@ -194,6 +194,19 @@ fun TriageResultScreen(
             }
             Spacer(modifier = Modifier.height(10.dp))
             VitalsSecondaryButton(
+                text = "Начать новый триаж",
+                onClick = {
+                    viewModel.startNewTriage {
+                        navController.navigate(NavRoutes.TRIAGE_CHAT) {
+                            popUpTo(NavRoutes.PATH) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            VitalsSecondaryButton(
                 text = "На «Мой путь»",
                 onClick = {
                     navController.navigate(NavRoutes.PATH) {

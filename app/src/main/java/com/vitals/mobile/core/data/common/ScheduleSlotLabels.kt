@@ -31,7 +31,7 @@ object ScheduleSlotLabels {
     fun formatTime(slot: ScheduleSlotDto): String = formatTimeIso(startIso(slot))
 
     fun formatTimeIso(iso: String): String {
-        val dateTime = parse(iso) ?: return if (iso.matches(Regex("""^\d{1,2}:\d{2}$"""))) iso else "—"
+        val dateTime = parse(iso) ?: return if (iso.matches(Regex("""^\d{1,2}:\d{2}$"""))) iso else "-"
         return dateTime.format(TIME_FMT)
     }
 
@@ -40,7 +40,7 @@ object ScheduleSlotLabels {
 
     /** Human-readable date+time for consultation cards (web `formatDayTime`). */
     fun formatDayTime(iso: String?): String {
-        if (iso.isNullOrBlank()) return "—"
+        if (iso.isNullOrBlank()) return "-"
         val dateTime = parse(iso) ?: return iso
         return dateTime.format(DAY_TIME_FMT)
     }
@@ -53,7 +53,7 @@ object ScheduleSlotLabels {
     fun formatRange(slot: ScheduleSlotDto): String {
         val start = formatTimeIso(startIso(slot))
         val end = formatTimeIso(endIso(slot))
-        return if (end != "—" && end.isNotBlank()) "$start – $end" else start
+        return if (end != "-" && end.isNotBlank()) "$start – $end" else start
     }
 
     fun isInFuture(slot: ScheduleSlotDto, zone: ZoneId = ZoneId.systemDefault()): Boolean {

@@ -93,7 +93,7 @@ fun ConsultationDetailScreen(
                             value = listOfNotNull(
                                 protocol.preliminaryDiagnosisIcd10,
                                 protocol.preliminaryDiagnosisText,
-                            ).joinToString(" — "),
+                            ).joinToString(" - "),
                         )
                         ProtocolField(label = "Рекомендации", value = protocol.recommendations)
                     }
@@ -103,7 +103,7 @@ fun ConsultationDetailScreen(
             Spacer(modifier = Modifier.height(12.dp))
             if (terminal) {
                 Text(
-                    text = "Консультация завершена — отправка сообщений недоступна",
+                    text = "Консультация завершена - отправка сообщений недоступна",
                     style = VitalsTheme.typography.bodySmall,
                     color = colors.textMuted,
                     modifier = Modifier.padding(bottom = 8.dp),

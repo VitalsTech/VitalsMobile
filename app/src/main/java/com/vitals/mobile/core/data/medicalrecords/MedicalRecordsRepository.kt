@@ -68,7 +68,7 @@ class MedicalRecordsRepository @Inject constructor(
     suspend fun getState(patientId: String): PatientStateDto? =
         runCatching { parsePatientState(api.getState(patientId)) }.getOrNull()
 
-    /** profileId + publicId — как web `getStateAliases`. */
+    /** profileId + publicId - как web `getStateAliases`. */
     suspend fun getStateAliases(patientIds: Collection<String>): PatientStateDto? {
         val unique = patientIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
         for (id in unique) {
@@ -109,7 +109,7 @@ class MedicalRecordsRepository @Inject constructor(
         val code = map["icd10Code"] ?: map["code"]
         val title = map["description"] ?: map["title"]
         return when {
-            !code.isNullOrBlank() && !title.isNullOrBlank() -> "$code — $title"
+            !code.isNullOrBlank() && !title.isNullOrBlank() -> "$code - $title"
             !title.isNullOrBlank() -> title
             !code.isNullOrBlank() -> code
             else -> null
@@ -136,7 +136,7 @@ class MedicalRecordsRepository @Inject constructor(
     }
 
     /**
-     * Flexible state parser: `activeDiagnoses` may be objects or strings like `"пр — апрол"`.
+     * Flexible state parser: `activeDiagnoses` may be objects or strings like `"пр - апрол"`.
      */
     private fun parsePatientState(raw: JsonElement): PatientStateDto? {
         val obj = raw as? JsonObject ?: return null

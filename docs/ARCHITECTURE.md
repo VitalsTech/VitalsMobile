@@ -54,6 +54,10 @@ Retrofit API  →  API Gateway
 При 401 authenticator обновляет токены через plain-клиент и повторяет запрос.  
 При неудаче сессия очищается → UI возвращается на экран входа.
 
+Госуслуги (DEV-заглушка): `AuthRepository` читает `/auth/esia/config`. Если `enabled && mode == "stub"`,
+на входе открывается нативная форма → `POST /auth/esia/stub/register`; в профиле — `POST /auth/esia/stub/link`.
+Живой OAuth, Custom Tabs и `vitals://esia` не используются.
+
 ---
 
 ## Data-слой

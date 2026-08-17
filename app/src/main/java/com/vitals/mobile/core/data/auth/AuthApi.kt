@@ -2,6 +2,7 @@ package com.vitals.mobile.core.data.auth
 
 import kotlinx.serialization.json.JsonObject
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.POST
 
@@ -32,4 +33,18 @@ interface AuthApi {
     @Headers("X-Vitals-Skip-Auth: 1")
     @POST("api/v1/auth/password/reset")
     suspend fun resetPassword(@Body request: ResetPasswordRequest)
+
+    @Headers("X-Vitals-Skip-Auth: 1")
+    @GET("api/v1/auth/esia/config")
+    suspend fun getEsiaConfig(): EsiaConfigDto
+
+    @Headers("X-Vitals-Skip-Auth: 1")
+    @POST("api/v1/auth/esia/stub/register")
+    suspend fun stubRegister(@Body request: EsiaStubRegisterRequest): JsonObject
+
+    @POST("api/v1/auth/esia/stub/link")
+    suspend fun stubLink(@Body body: JsonObject): JsonObject
+
+    @GET("api/v1/auth/esia/status")
+    suspend fun getEsiaStatus(): EsiaStatusDto
 }

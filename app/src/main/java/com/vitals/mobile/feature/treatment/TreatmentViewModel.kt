@@ -82,7 +82,7 @@ class TreatmentViewModel @Inject constructor(
                     s !in setOf("fulfilled", "dispensed", "cancelled", "canceled", "expired")
                 }
                 .map { rx ->
-                    "${rx.formatMedications()} — ${LabLabels.prescriptionStatus(rx.status)}"
+                    "${rx.formatMedications()} - ${LabLabels.prescriptionStatus(rx.status)}"
                 }
 
             val done = (doneFromRoute + historyTitles).distinct()

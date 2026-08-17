@@ -20,10 +20,10 @@ data class DiagnosisLineUi(
 ) {
     val label: String
         get() = when {
-            code.isNotBlank() && code != "—" && title.isNotBlank() && !title.equals(code, true) ->
-                "$code — $title"
+            code.isNotBlank() && code != "-" && title.isNotBlank() && !title.equals(code, true) ->
+                "$code - $title"
             title.isNotBlank() -> title
-            code.isNotBlank() && code != "—" -> code
+            code.isNotBlank() && code != "-" -> code
             else -> "Диагноз"
         }
 }
@@ -105,7 +105,7 @@ class MedicalOverviewViewModel @Inject constructor(
         items.orEmpty().mapIndexed { index, d ->
             DiagnosisLineUi(
                 id = d.sourceEventId ?: d.resolvedCode.ifBlank { "state-$index" },
-                code = d.resolvedCode.ifBlank { "—" },
+                code = d.resolvedCode.ifBlank { "-" },
                 title = d.resolvedTitle,
             )
         }
@@ -137,7 +137,7 @@ class MedicalOverviewViewModel @Inject constructor(
         return listOf(
             DiagnosisLineUi(
                 id = "protocol",
-                code = code.ifBlank { "—" },
+                code = code.ifBlank { "-" },
                 title = title.ifBlank { "Диагноз из консультации" },
             ),
         )

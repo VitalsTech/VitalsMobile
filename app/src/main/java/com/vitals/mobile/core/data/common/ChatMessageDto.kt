@@ -36,7 +36,7 @@ data class ChatMessageDto(
 
     val resolvedText: String get() = content ?: message ?: text.orEmpty()
 
-    /** Prefer sentAt, then createdAt / timestamp — mirrors web `toChatMessage`. */
+    /** Prefer sentAt, then createdAt / timestamp - mirrors web `toChatMessage`. */
     val resolvedSentAt: String? get() = sentAt ?: createdAt ?: timestamp
 
     val isFromCurrentUser: Boolean

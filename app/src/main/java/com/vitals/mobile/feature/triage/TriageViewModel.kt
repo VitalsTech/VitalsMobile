@@ -58,6 +58,32 @@ class TriageViewModel @Inject constructor(
         }
     }
 
+    fun startNewTriage() {
+        viewModelScope.launch {
+            _uiState.value = TriageUiState(isLoading = true)
+            sessionManager.saveTriageSessionId(null)
+            val patientId = sessionManager.currentSession().patientId
+            if (patientId == null) {
+                _uiState.value = TriageUiState(
+                    isLoading = false,
+                    errorMessage = "Профиль пациента не найден",
+                )
+                return@launch
+            }
+            runCatching { triageRepository.createSession(patientId) }
+                .onSuccess { session ->
+                    sessionManager.saveTriageSessionId(session.resolvedId)
+                    applySession(session)
+                }
+                .onFailure { error ->
+                    _uiState.value = TriageUiState(
+                        isLoading = false,
+                        errorMessage = error.message ?: "Не удалось начать новый триаж",
+                    )
+                }
+        }
+    }
+
     private fun applySession(session: TriageSessionDto) {
         val remoteMessages = session.messages.orEmpty().map { it.toUiChatMessage() }
         _uiState.value = _uiState.value.copy(

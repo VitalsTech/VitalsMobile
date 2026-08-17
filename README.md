@@ -181,6 +181,9 @@ com.vitals.mobile
 - Базовый URL: `BuildConfig.API_BASE_URL` ← `local.properties` / дефолт эмулятора.
 - Клиент: Retrofit + kotlinx.serialization (`ignoreUnknownKeys`, lenient).
 - JWT refresh через отдельный `@Named("plain")` OkHttpClient (без рекурсии authenticator).
+- Госуслуги (DEV-заглушка): `GET /api/v1/auth/esia/config`. Кнопка, если `enabled && mode === "stub"`.
+  Вход — нативная форма ФИО/почта/телефон → `POST /auth/esia/stub/register`. В профиле — `POST /auth/esia/stub/link`.
+  Без браузера и без `vitals://esia`. Клиники и врачи из Госуслуг не импортируются.
 - Для dev разрешён cleartext HTTP (`network_security_config.xml`).
 - Ответы gateway часто «мягкие» — парсинг через гибкие хелперы (`asArrayFlexible` и т.п.), как в VitalsWeb.
 

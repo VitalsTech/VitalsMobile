@@ -122,16 +122,16 @@ class LabsViewModel @Inject constructor(
                         ),
                     )
                 }
-                // Как web Labs: если формальных направлений нет — показываем из протокола.
+                // Как web Labs: если формальных направлений нет - показываем из протокола.
                 if (labOrders.isEmpty()) {
                     protocolLabs.forEach { name ->
-                        add(LabLineUi(title = name, status = "Из протокола"))
+                        add(LabLineUi(title = name, status = "Из консультации"))
                     }
                 } else {
                     protocolLabs
                         .filter { it.lowercase() !in orderedNames }
                         .forEach { name ->
-                            add(LabLineUi(title = name, status = "Из протокола"))
+                            add(LabLineUi(title = name, status = "Из консультации"))
                         }
                 }
                 val shown = map { it.title.trim().lowercase() }.toMutableSet()

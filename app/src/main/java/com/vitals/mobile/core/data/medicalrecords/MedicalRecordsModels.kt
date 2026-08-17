@@ -104,7 +104,7 @@ data class DiagnosisDto(
         val c = resolvedCode
         val t = resolvedTitle
         return when {
-            c.isNotBlank() && t.isNotBlank() && !t.equals(c, true) -> "$c — $t"
+            c.isNotBlank() && t.isNotBlank() && !t.equals(c, true) -> "$c - $t"
             t.isNotBlank() -> t
             c.isNotBlank() -> c
             else -> "Диагноз"
