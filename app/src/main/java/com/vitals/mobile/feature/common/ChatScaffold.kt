@@ -43,6 +43,7 @@ data class UiChatMessage(
     val fromMe: Boolean,
     val sentAt: String? = null,
     val readAt: String? = null,
+    val isSystem: Boolean = false,
 ) {
     val timeLabel: String get() = ChatMessageLabels.formatTime(sentAt)
     val statusLabel: String? get() = ChatMessageLabels.deliveryStatus(fromMe, readAt)
@@ -54,6 +55,7 @@ fun ChatMessageDto.toUiChatMessage(): UiChatMessage = UiChatMessage(
     fromMe = isFromCurrentUser,
     sentAt = resolvedSentAt,
     readAt = readAt,
+    isSystem = isSystem,
 )
 
 fun optimisticUiChatMessage(text: String): UiChatMessage = UiChatMessage(
@@ -136,6 +138,7 @@ fun ChatBody(
                     fromMe = message.fromMe,
                     timeLabel = message.timeLabel.takeIf { it.isNotBlank() },
                     statusLabel = message.statusLabel,
+                    isSystem = message.isSystem,
                 )
             }
             if (isThinking) {

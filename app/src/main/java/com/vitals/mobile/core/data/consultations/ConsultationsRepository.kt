@@ -52,4 +52,21 @@ class ConsultationsRepository @Inject constructor(
 
     suspend fun consent(id: String, dataProcessing: Boolean, videoRecording: Boolean) =
         api.consent(id, ConsentRequest(dataProcessing, videoRecording))
+
+    suspend fun startVideo(id: String): VideoRoomResponse = api.startVideo(id)
+
+    suspend fun getVideo(id: String): VideoRoomResponse = api.getVideo(id)
+
+    suspend fun stopVideo(id: String) {
+        runCatching { api.stopVideo(id) }
+    }
+
+    suspend fun fetchVideoRoom(id: String, asInitiator: Boolean): VideoRoomResponse {
+        if (asInitiator) return api.startVideo(id)
+        return try {
+            api.getVideo(id)
+        } catch (error: retrofit2.HttpException) {
+            if (error.code() == 409) api.startVideo(id) else throw error
+        }
+    }
 }

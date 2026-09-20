@@ -1,6 +1,9 @@
 package com.vitals.mobile.core.data.consultations
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 
 /** Canonical consultation types, matching VitalsWeb's `ConsultationType` union. */
 enum class ConsultationType(val wireValue: String) {
@@ -98,6 +101,9 @@ data class ConsultationDto(
     val completedAt: String? = null,
     val lastActivityAt: String? = null,
     val protocol: ConsultationProtocolDto? = null,
+    val videoRoomId: String? = null,
+    val videoActive: Boolean? = null,
+    val patientConsentGiven: Boolean? = null,
 ) {
     val resolvedId: String get() = id ?: sessionId.orEmpty()
 
@@ -108,5 +114,37 @@ data class ConsultationDto(
         if (isScheduled == true) return true
         if (isScheduled == false) return false
         return !scheduledAt.isNullOrBlank()
+    }
+
+    fun isVideoActive(): Boolean = videoActive == true || !videoRoomId.isNullOrBlank()
+}
+
+@Serializable
+data class IceServerDto(
+    val urls: JsonElement? = null,
+    val username: String? = null,
+    val credential: String? = null,
+)
+
+@Serializable
+data class VideoRoomResponse(
+    val mode: String? = null,
+    val roomId: String? = null,
+    val serverUrl: String? = null,
+    val accessToken: String? = null,
+    val role: String? = null,
+    val chatAvailable: Boolean? = null,
+    val signalingHub: String? = null,
+    val iceServers: List<IceServerDto>? = null,
+)
+
+fun IceServerDto.urlList(): List<String> {
+    val value = urls ?: return emptyList()
+    return when (value) {
+        is JsonPrimitive -> if (value.isString) listOfNotNull(value.content.takeIf { it.isNotBlank() }) else emptyList()
+        is JsonArray -> value.mapNotNull { el ->
+            (el as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+        }
+        else -> emptyList()
     }
 }

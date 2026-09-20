@@ -1,18 +1,25 @@
 package com.vitals.mobile.feature.doctors
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vitals.mobile.core.data.common.ConsultationLabels
+import com.vitals.mobile.core.data.consultations.ConsultationHubClient
 import com.vitals.mobile.core.data.consultations.ConsultationsRepository
+import com.vitals.mobile.core.session.SessionManager
 import com.vitals.mobile.feature.common.UiChatMessage
 import com.vitals.mobile.feature.common.optimisticUiChatMessage
 import com.vitals.mobile.feature.common.toUiChatMessage
+import com.vitals.mobile.feature.consultations.video.VideoCallCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
 data class DoctorChatUiState(
@@ -21,17 +28,46 @@ data class DoctorChatUiState(
     val messages: List<UiChatMessage> = emptyList(),
     val inputText: String = "",
     val isSending: Boolean = false,
+    val closed: Boolean = false,
 )
 
 @HiltViewModel
 class DoctorChatViewModel @Inject constructor(
+    @ApplicationContext appContext: Context,
     private val consultationsRepository: ConsultationsRepository,
+    sessionManager: SessionManager,
+    json: Json,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DoctorChatUiState())
     val uiState = _uiState.asStateFlow()
 
+    val video = VideoCallCoordinator(
+        appContext = appContext,
+        repository = consultationsRepository,
+        hub = ConsultationHubClient(sessionManager, json),
+        scope = viewModelScope,
+    )
+
     private var pollJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            video.refreshChat.collect {
+                val id = _uiState.value.consultationId ?: return@collect
+                refreshMessages(id)
+            }
+        }
+        viewModelScope.launch {
+            video.statusChanges.collect { status ->
+                if (ConsultationLabels.isTerminal(status)) {
+                    _uiState.value = _uiState.value.copy(closed = true)
+                    val id = _uiState.value.consultationId
+                    if (id != null) video.attach(id, enabled = false)
+                }
+            }
+        }
+    }
 
     fun load(doctorId: String) {
         pollJob?.cancel()
@@ -53,7 +89,10 @@ class DoctorChatViewModel @Inject constructor(
                 return@launch
             }
             val consultationId = active.resolvedId
-            _uiState.value = _uiState.value.copy(consultationId = consultationId)
+            val closed = ConsultationLabels.isTerminal(active.status)
+            _uiState.value = _uiState.value.copy(consultationId = consultationId, closed = closed)
+            runCatching { consultationsRepository.join(consultationId) }
+            video.attach(consultationId, enabled = !closed)
             refreshMessages(consultationId, setLoadingFalse = true)
             startPolling(consultationId)
         }
@@ -66,7 +105,7 @@ class DoctorChatViewModel @Inject constructor(
     fun sendCurrentInput() {
         val text = _uiState.value.inputText.trim()
         val consultationId = _uiState.value.consultationId ?: return
-        if (text.isEmpty()) return
+        if (text.isEmpty() || _uiState.value.closed) return
         val optimistic = optimisticUiChatMessage(text)
         _uiState.value = _uiState.value.copy(
             messages = _uiState.value.messages + optimistic,
@@ -112,6 +151,7 @@ class DoctorChatViewModel @Inject constructor(
 
     override fun onCleared() {
         pollJob?.cancel()
+        video.release()
         super.onCleared()
     }
 

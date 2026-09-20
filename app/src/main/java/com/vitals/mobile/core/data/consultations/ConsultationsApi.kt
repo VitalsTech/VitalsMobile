@@ -66,4 +66,13 @@ interface ConsultationsApi {
 
     @POST("api/v1/consultations/{id}/ratings")
     suspend fun rate(@Path("id") id: String, @Body request: RateConsultationRequest)
+
+    @POST("api/v1/consultations/{id}/video/start")
+    suspend fun startVideo(@Path("id") id: String): VideoRoomResponse
+
+    @GET("api/v1/consultations/{id}/video")
+    suspend fun getVideo(@Path("id") id: String): VideoRoomResponse
+
+    @POST("api/v1/consultations/{id}/video/stop")
+    suspend fun stopVideo(@Path("id") id: String): okhttp3.ResponseBody?
 }
